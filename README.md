@@ -1,64 +1,42 @@
 # Banco de Dados para IA Generativa
 
-Projeto desenvolvido para o grupo de estudos de Engenharia de Dados do ORION com o objetivo de construir um pipeline completo para coleta, processamento, armazenamento e recuperação de conhecimento utilizando técnicas de Inteligência Artificial Generativa.
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker\&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python\&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql\&logoColor=white)
+
+Projeto desenvolvido no Grupo de Estudos ORION com o objetivo de construir um pipeline completo para coleta, processamento, armazenamento e recuperação de conhecimento utilizando técnicas de Inteligência Artificial Generativa.
+
+---
 
 ## Visão Geral
 
-O projeto consiste na criação de uma base de conhecimento capaz de:
+O projeto consiste na construção de uma base de conhecimento capaz de:
 
 * Coletar informações de fontes externas.
-* Armazenar os dados brutos em um Data Lake.
-* Processar e limpar os dados.
-* Dividir o conteúdo em chunks.
+* Armazenar dados em um Data Lake.
+* Processar e transformar conteúdos.
+* Dividir documentos em chunks.
 * Gerar embeddings vetoriais.
 * Armazenar textos e vetores em bancos especializados.
-* Permitir consultas futuras para aplicações de IA Generativa.
+* Servir de base para aplicações de IA Generativa.
 
-## Arquitetura do Projeto
+---
 
-```text
-                 ┌─────────────────┐
-                 │   Fontes Web    │
-                 └────────┬────────┘
-                          │
-                          ▼
-                ┌──────────────────┐
-                │ Coleta de Dados  │
-                │ Bash + Curl      │
-                └────────┬─────────┘
-                         │
-                         ▼
-                ┌──────────────────┐
-                │ Data Lake Bronze │
-                │      MinIO       │
-                └────────┬─────────┘
-                         │
-                         ▼
-                ┌──────────────────┐
-                │ Transformação    │
-                │ Limpeza HTML     │
-                │ Markdown/Texto   │
-                └────────┬─────────┘
-                         │
-                         ▼
-                ┌──────────────────┐
-                │ Chunking         │
-                │ Overlap          │
-                └────────┬─────────┘
-                         │
-                         ▼
-                ┌──────────────────┐
-                │ Embeddings       │
-                │ BGE-M3           │
-                └───────┬──────────┘
-                        │
-        ┌───────────────┴───────────────┐
-        ▼                               ▼
-┌─────────────────┐           ┌─────────────────┐
-│ PostgreSQL      │           │ Qdrant          │
-│ Dados Textuais  │           │ Vetores         │
-└─────────────────┘           └─────────────────┘
+## Arquitetura
+
+```mermaid
+flowchart TD
+    A[Fontes de Dados] --> B[Coleta]
+    B --> C[Data Lake - MinIO]
+    C --> D[Transformação]
+    D --> E[Chunking]
+    E --> F[Embeddings]
+    F --> G[PostgreSQL]
+    F --> H[Qdrant]
 ```
+
+---
 
 ## Tecnologias Utilizadas
 
@@ -89,34 +67,56 @@ O projeto consiste na criação de uma base de conhecimento capaz de:
 
 ---
 
-# Cronograma de Desenvolvimento
+## Roadmap
 
-## Entrega 1 — Coleta e Armazenamento Bronze ✅
+### ✅ Entrega 1 — Coleta e Armazenamento Bronze
 
-## Entrega 2 — Transformação
+* Configuração do MinIO com Docker.
+* Criação da camada Bronze.
+* Automação da coleta utilizando Bash.
+* Download de conteúdo web utilizando Curl.
+* Armazenamento dos dados brutos no Data Lake.
 
-## Entrega 3 — Chunking
+### 🚧 Entrega 2 — Transformação
 
-## Entrega 4 — Vetorização
+* Leitura dos arquivos armazenados.
+* Limpeza e tratamento do conteúdo.
+* Conversão para texto estruturado.
 
-## Entrega 5 — Persistência
+### ⏳ Entrega 3 — Chunking
+
+* Segmentação de documentos.
+* Aplicação de overlap entre chunks.
+
+### ⏳ Entrega 4 — Vetorização
+
+* Geração de embeddings utilizando BGE-M3.
+
+### ⏳ Entrega 5 — Persistência
+
+* Armazenamento textual em PostgreSQL.
+* Armazenamento vetorial em Qdrant.
 
 ---
 
-# Estrutura Atual
+## Estrutura do Projeto
 
 ```text
 .
-├── docker-compose.yml
-├── coleta.sh
-├── dados/
+├── data/
+├── docs/
+├── scripts/
+├── src/
+├── docker/
 ├── README.md
-└── docs/
+└── .gitignore
 ```
+
+> A estrutura poderá evoluir conforme novas etapas forem implementadas.
 
 ---
 
-# Executando a Primeira Entrega
+## Execução da Primeira Entrega
 
 Iniciar os serviços:
 
@@ -130,6 +130,26 @@ Executar a coleta:
 ./coleta.sh https://pt.wikipedia.org/wiki/Universidade_Federal_de_Alagoas
 ```
 
-O arquivo coletado será armazenado no bucket Bronze do MinIO.
+O conteúdo coletado será armazenado na camada Bronze do Data Lake.
 
 ---
+
+## Objetivos de Aprendizagem
+
+* Engenharia de Dados
+* Data Lakes
+* Automação de processos
+* Containers com Docker
+* Processamento de documentos
+* Bancos relacionais e vetoriais
+* IA Generativa e RAG
+
+---
+
+## Equipe
+
+Grupo de Estudos ORION
+
+## Instituição
+
+Universidade Federal de Alagoas (UFAL)
