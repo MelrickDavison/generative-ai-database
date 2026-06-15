@@ -1,10 +1,13 @@
 from minio import Minio
 from io import BytesIO
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 client = Minio(
-    "localhost:9000",
-    access_key="admin",
-    secret_key="admin123",
+    os.getenv("MINIO_ENDPOINT"),
+    access_key=os.getenv("MINIO_ROOT_USER"),
+    secret_key=os.getenv("MINIO_ROOT_PASSWORD"),
     secure=False
 )
 
