@@ -53,39 +53,49 @@ if not client.collection_exists("documentos"):
       )
   )
 
-lista_textos = [r[4] for r in registros]
+batch_size = 100
 
-embeddings = model.encode(
-    lista_textos,
-    batch_size=32,
-    show_progress_bar=True
-)
+for i in range(0, len(registros), batch_size):
 
-print(f"Dimensão do embedding: {len(embeddings[0])}")
+    lote = registros[i:i+batch_size]
 
-points = []
+    textos = [r[4] for r in lote]
 
-print("Montando pontos para envio ao Qdrant...")
-
-for registro, embedding in zip(registros, embeddings):
-    points.append(
-        PointStruct(
-            id=registro[0],
-            vector=embedding.tolist(),
-            payload={
-                "documento": registro[1],
-                "chunk_index": registro[2],
-                "tamanho": registro[3],
-                "texto": registro[4]
-            }
-        )
+    print(
+        f"Processando lote "
+        f"{i//batch_size + 1} "
+        f"de {(len(registros)-1)//batch_size + 1}"
     )
 
-client.upsert(
-    collection_name="documentos",
-    points=points
-)
+    embeddings = model.encode(
+        textos,
+        batch_size=32,
+        show_progress_bar=False
+    )
 
-print(f"{len(points)} vetores enviados ao Qdrant!")
+    points = []
+
+    for registro, embedding in zip(lote, embeddings):
+
+        points.append(
+            PointStruct(
+                id=registro[0],
+                vector=embedding.tolist(),
+                payload={
+                    "documento": registro[1],
+                    "chunk_index": registro[2],
+                    "tamanho": registro[3],
+                    "texto": registro[4]
+                }
+            )
+        )
+
+    client.upsert(
+        collection_name="documentos",
+        points=points
+    )
+
+    print(f"{len(points)} vetores enviados.")
+
 cursor.close()
 conn.close()
