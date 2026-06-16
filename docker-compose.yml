@@ -24,7 +24,7 @@ services:
   qdrant:
     image: qdrant/qdrant
 
-    container_name: qdrant
+    container_name: ${QDRANT_HOST}
 
     ports:
       - "6333:6333"
