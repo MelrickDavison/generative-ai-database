@@ -8,6 +8,8 @@ import os
 
 load_dotenv()
 
+fitz.TOOLS.mupdf_display_errors(False)
+
 client = Minio(
     os.getenv("MINIO_ENDPOINT"),
     access_key=os.getenv("MINIO_ROOT_USER"),
