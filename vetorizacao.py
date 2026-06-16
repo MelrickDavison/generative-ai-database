@@ -30,6 +30,7 @@ SELECT
     tamanho,
     conteudo
 FROM chunks
+WHERE vetorizado = FALSE
 """)
 
 registros = cursor.fetchall()
@@ -95,7 +96,23 @@ for i in range(0, len(registros), batch_size):
         points=points
     )
 
-    print(f"{len(points)} vetores enviados.")
+    ids = [r[0] for r in lote]
+
+    cursor.executemany(
+        """
+        UPDATE chunks
+        SET vetorizado = TRUE
+        WHERE id = %s
+        """,
+        [(id_chunk,) for id_chunk in ids]
+    )
+
+    conn.commit()
+
+    print(
+        f"Lote {i//batch_size + 1} concluído "
+        f"({len(points)} vetores)"
+    )
 
 cursor.close()
 conn.close()
