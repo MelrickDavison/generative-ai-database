@@ -17,6 +17,27 @@ client = Minio(
     secure=False
 )
 
+def enviar_dados(nome_saida, dados_saida):
+
+    try:
+        client.stat_object("silver", nome_saida)
+
+        print(f"{nome_saida} já existe na Silver.")
+        return
+
+    except:
+        pass
+
+    client.put_object(
+        "silver",
+        nome_saida,
+        BytesIO(dados_saida),
+        length=len(dados_saida),
+        content_type=content_type
+    )
+
+    print(f"Arquivo enviado: {nome_saida}")
+
 def pdf_para_texto(pdf_bytes):
     texto = ""
 
@@ -45,18 +66,11 @@ for objeto in client.list_objects("bronze"):
         markdown = markdownify(str(soup))
 
         nome_saida = nome.replace(".html", ".md")
-
         dados_saida = markdown.encode("utf-8")
+        content_type = "text/markdown"
 
-        client.put_object(
-        "silver",
-        nome_saida,
-        BytesIO(dados_saida),
-        length=len(dados_saida),
-        content_type="text/markdown"
-        )
+        enviar_dados(nome_saida, dados_saida, content_type)
 
-        print(f"{nome} -> {nome_saida}")
     elif nome.endswith(".pdf"):
         dados_pdf = resposta.read()
         texto = pdf_para_texto(dados_pdf)
@@ -65,12 +79,4 @@ for objeto in client.list_objects("bronze"):
         dados_saida = texto.encode("utf-8")
         content_type = "text/plain"
 
-        client.put_object(
-            "silver",
-            nome_saida,
-            BytesIO(dados_saida),
-            length=len(dados_saida),
-            content_type="text/plain"
-        )
-
-        print(f"{nome} -> {nome_saida}")
+        enviar_dados(nome_saida, dados_saida, content_type)   
