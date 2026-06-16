@@ -56,13 +56,24 @@ for obj in client.list_objects("silver"):
         obj.object_name
     )
 
+    response.close()
+    response.release_conn()
+
     texto = response.read().decode("utf-8")
+    nome_base = os.path.splitext(obj.object_name)[0]
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM chunks
+    WHERE documento = %s
+    """, (nome_base,))
+
+    if cursor.fetchone()[0] > 0:
+        print(f"{nome_base} já está no PostgreSQL.")
+        continue
 
     texto = limpar_texto(texto)
-    
     chunks = create_chunks(texto)
-
-    nome_base = obj.object_name.replace(".md", "")
 
     print(f"Total de chunks: {len(chunks)}")
 
@@ -85,6 +96,7 @@ for obj in client.list_objects("silver"):
             """,
             (nome_base, i, len(chunk), chunk)
         )
+        print(f"Chunk {i} inserido.")
 
 conn.commit()
 cursor.close()
