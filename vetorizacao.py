@@ -53,34 +53,39 @@ if not client.collection_exists("documentos"):
       )
   )
 
-for registro in registros:
+lista_textos = [r[4] for r in registros]
 
-    id_chunk = registro[0]
-    documento = registro[1]
-    indice = registro[2]
-    tamanho = registro[3]
-    texto = registro[4]
-
-    print(f"Vetorizando chunk {id_chunk} - {documento}")
-    embeddings = model.encode(
+embeddings = model.encode(
     lista_textos,
     batch_size=32,
     show_progress_bar=True
 )
 
-    client.upsert(
-        collection_name="documentos",
-        points=[
-            PointStruct(
-                id=id_chunk,
-                vector=embedding.tolist(),
-                payload={
-                    "documento": documento,
-                    "chunk_index": indice,
-                    "tamanho": tamanho,
-                    "texto": texto
-                }
-            )
-        ]
+print(f"Dimensão do embedding: {len(embeddings[0])}")
+
+points = []
+
+print("Montando pontos para envio ao Qdrant...")
+
+for registro, embedding in zip(registros, embeddings):
+    points.append(
+        PointStruct(
+            id=registro[0],
+            vector=embedding.tolist(),
+            payload={
+                "documento": registro[1],
+                "chunk_index": registro[2],
+                "tamanho": registro[3],
+                "texto": registro[4]
+            }
+        )
     )
-print("Vetorização concluída!")
+
+client.upsert(
+    collection_name="documentos",
+    points=points
+)
+
+print(f"{len(points)} vetores enviados ao Qdrant!")
+cursor.close()
+conn.close()
