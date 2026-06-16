@@ -1,0 +1,8 @@
+minio
+python-dotenv
+beautifulsoup4
+markdownify
+pymupdf
+psycopg2-binary
+sentence-transformers
+qdrant-client
