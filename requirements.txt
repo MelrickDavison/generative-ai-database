@@ -6,3 +6,6 @@ pymupdf
 psycopg2-binary
 sentence-transformers
 qdrant-client
+fastapi
+uvicorn
+python-multipart
