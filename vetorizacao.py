@@ -12,30 +12,6 @@ from qdrant_client.models import (
 
 load_dotenv()
 
-conn = psycopg2.connect(
-    host=os.getenv("POSTGRES_HOST"),
-    port=os.getenv("POSTGRES_PORT"),
-    database=os.getenv("POSTGRES_DB"),
-    user=os.getenv("POSTGRES_USER"),
-    password=os.getenv("POSTGRES_PASSWORD")
-)
-
-cursor = conn.cursor()
-
-cursor.execute("""
-SELECT
-    id,
-    documento,
-    chunk_index,
-    tamanho,
-    conteudo
-FROM chunks
-WHERE vetorizado = FALSE
-""")
-
-registros = cursor.fetchall()
-print(f"Total de registros encontrados: {len(registros)}")
-
 model = SentenceTransformer(
     "BAAI/bge-m3"
 )
@@ -46,37 +22,62 @@ client = QdrantClient(
 )
 
 if not client.collection_exists("documentos"):
-  client.create_collection(
-      collection_name="documentos",
-      vectors_config=VectorParams(
-          size=1024,
-          distance=Distance.COSINE
-      )
-  )
 
-batch_size = 100
-
-for i in range(0, len(registros), batch_size):
-
-    lote = registros[i:i+batch_size]
-
-    textos = [r[4] for r in lote]
-
-    print(
-        f"Processando lote "
-        f"{i//batch_size + 1} "
-        f"de {(len(registros)-1)//batch_size + 1}"
+    client.create_collection(
+        collection_name="documentos",
+        vectors_config=VectorParams(
+            size=1024,
+            distance=Distance.COSINE
+        )
     )
+
+
+def vetorizar_chunks(ids_chunks):
+
+    if not ids_chunks:
+        print("Nenhum chunk novo para vetorizar.")
+        return
+
+    conn = psycopg2.connect(
+        host=os.getenv("POSTGRES_HOST"),
+        port=os.getenv("POSTGRES_PORT"),
+        database=os.getenv("POSTGRES_DB"),
+        user=os.getenv("POSTGRES_USER"),
+        password=os.getenv("POSTGRES_PASSWORD")
+    )
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id,
+            documento,
+            chunk_index,
+            tamanho,
+            conteudo
+        FROM chunks
+        WHERE id = ANY(%s)
+        """,
+        (ids_chunks,)
+    )
+
+    registros = cursor.fetchall()
+    print(f"Vetorizando {len(registros)} chunks...")
+
+    textos = [r[4] for r in registros]
 
     embeddings = model.encode(
         textos,
-        batch_size=32,
-        show_progress_bar=False
+        batch_size=32
     )
 
     points = []
 
-    for registro, embedding in zip(lote, embeddings):
+    for registro, embedding in zip(
+        registros,
+        embeddings
+    ):
 
         points.append(
             PointStruct(
@@ -96,7 +97,7 @@ for i in range(0, len(registros), batch_size):
         points=points
     )
 
-    ids = [r[0] for r in lote]
+    print(f"{len(points)} vetores enviados ao Qdrant.")
 
     cursor.executemany(
         """
@@ -104,15 +105,12 @@ for i in range(0, len(registros), batch_size):
         SET vetorizado = TRUE
         WHERE id = %s
         """,
-        [(id_chunk,) for id_chunk in ids]
+        [(id_chunk,) for id_chunk in ids_chunks]
     )
+    
+    print("Chunks marcados como vetorizados.")
 
     conn.commit()
 
-    print(
-        f"Lote {i//batch_size + 1} concluído "
-        f"({len(points)} vetores)"
-    )
-
-cursor.close()
-conn.close()
+    cursor.close()
+    conn.close()

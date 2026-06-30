@@ -1,34 +1,26 @@
-from minio import Minio
-from dotenv import load_dotenv
 import psycopg2
 import os
+
+from dotenv import load_dotenv
+
 load_dotenv()
 
-client = Minio(
-    os.getenv("MINIO_ENDPOINT"),
-    access_key=os.getenv("MINIO_ROOT_USER"),
-    secret_key=os.getenv("MINIO_ROOT_PASSWORD"),
-    secure=False
-)
-
-conn = psycopg2.connect(
-    host=os.getenv("POSTGRES_HOST"),
-    port=os.getenv("POSTGRES_PORT"),
-    database=os.getenv("POSTGRES_DB"),
-    user=os.getenv("POSTGRES_USER"),
-    password=os.getenv("POSTGRES_PASSWORD")
-)
-
-cursor = conn.cursor()
 
 def limpar_texto(texto):
+
     return (
         texto
         .replace('\x00', '')
         .replace('\ufeff', '')
     )
 
-def create_chunks(text, chunk_size=1200, overlap=200):
+
+def create_chunks(
+    text,
+    chunk_size=1200,
+    overlap=200
+):
+
     chunks = []
 
     start = 0
@@ -45,43 +37,27 @@ def create_chunks(text, chunk_size=1200, overlap=200):
     return chunks
 
 
-print("Lendo arquivos da Silver...\n")
+def salvar_chunks(
+    documento,
+    texto
+):
 
-for obj in client.list_objects("silver"):
-
-    print(f"Processando: {obj.object_name}")
-
-    response = client.get_object(
-        "silver",
-        obj.object_name
+    conn = psycopg2.connect(
+        host=os.getenv("POSTGRES_HOST"),
+        port=os.getenv("POSTGRES_PORT"),
+        database=os.getenv("POSTGRES_DB"),
+        user=os.getenv("POSTGRES_USER"),
+        password=os.getenv("POSTGRES_PASSWORD")
     )
 
-    response.close()
-    response.release_conn()
-
-    texto = response.read().decode("utf-8")
-    nome_base = os.path.splitext(obj.object_name)[0]
-
-    cursor.execute("""
-    SELECT COUNT(*)
-    FROM chunks
-    WHERE documento = %s
-    """, (nome_base,))
-
-    if cursor.fetchone()[0] > 0:
-        print(f"{nome_base} já está no PostgreSQL.")
-        continue
+    cursor = conn.cursor()
 
     texto = limpar_texto(texto)
     chunks = create_chunks(texto)
 
-    print(f"Total de chunks: {len(chunks)}")
+    ids_chunks = []
 
     for i, chunk in enumerate(chunks, start=1):
-
-        nome_chunk = f"{nome_base}_chunk_{i}.txt"
-
-        dados = chunk.encode("utf-8")
 
         cursor.execute(
             """
@@ -93,13 +69,23 @@ for obj in client.list_objects("silver"):
                 conteudo
             )
             VALUES (%s,%s,%s,%s)
+            RETURNING id
             """,
-            (nome_base, i, len(chunk), chunk)
+            (
+                documento,
+                i,
+                len(chunk),
+                chunk
+            )
         )
-        print(f"Chunk {i} inserido.")
 
-conn.commit()
-cursor.close()
-conn.close()
+        id_chunk = cursor.fetchone()[0]
 
-print("Chunking concluído!")
+        ids_chunks.append(id_chunk)
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return ids_chunks
